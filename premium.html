@@ -1,0 +1,82 @@
+<!-- premium.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Membership</title>
+</head>
+<body>
+    <h1>Premium Membership</h1>
+    <button id="premiumButton">Buy Premium Membership</button>
+
+    <!-- Container for displaying status messages -->
+    <div id="statusMessage"></div>
+
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script>
+        document.getElementById('premiumButton').addEventListener('click', async function(event) {
+            event.preventDefault();
+            
+            try {
+                const response = await axios.post('/create-order', {
+                    // Add any necessary data for creating the order (optional)
+                });
+
+                if (response.data.orderId) {
+                    const options = {
+                        key: 'rzp_test_Sv1ndMmezEYbe5', // Replace with your actual Razorpay Key ID
+                        amount: response.data.amount,
+                        currency: response.data.currency,
+                        name: 'Premium Membership',
+                        description: 'Upgrade to Premium Membership',
+                        order_id: response.data.orderId,
+                        handler: async function (response) {
+                            try {
+                                const paymentResponse = await axios.post('/payment-response', {
+                                    paymentId: response.razorpay_payment_id,
+                                    orderId: response.razorpay_order_id,
+                                    status: 'success' // Assuming the payment was successful
+                                });
+
+                                if (paymentResponse.data.message === 'Payment response processed successfully') {
+                                    alert('Transaction successful');
+                                    // Optionally, redirect or update UI for successful transaction
+                                } else {
+                                    alert('Transaction failed');
+                                    // Handle transaction failure if needed
+                                }
+                            } catch (error) {
+                                console.error('Error processing payment response:', error);
+                                alert('Error processing payment response');
+                            }
+                        },
+                        prefill: {
+                            email: 'user@example.com', // Pre-fill user's email (optional)
+                            contact: '9999999999' // Pre-fill user's contact number (optional)
+                        },
+                        theme: {
+                            color: '#3399cc' // Customize theme color (optional)
+                        }
+                    };
+
+                    const rzp1 = new Razorpay(options);
+                    rzp1.open();
+                } else {
+                    console.error('Error creating order:', response.data.error);
+                    displayStatusMessage('Error creating order: ' + response.data.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                displayStatusMessage('Error creating order: ' + error.message);
+            }
+        });
+
+        function displayStatusMessage(message) {
+            document.getElementById('statusMessage').textContent = message;
+        }
+    </script>
+</body>
+</html>
